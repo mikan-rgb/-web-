@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>便利ツール集</title>
+  <style>
+    body { font-family: sans-serif; margin: 32px; }
+    .tabs { display: flex; margin-bottom: 1em; }
+    .tab { margin-right: 1em; padding: 0.5em 1em; cursor: pointer; border: 1px solid #ccc; border-radius: 6px 6px 0 0; background: #eee; }
+    .tab.active { background: #fff; border-bottom: 1px solid #fff; }
+    .tab-content { border: 1px solid #ccc; border-radius: 0 6px 6px 6px; padding: 1em; background: #fff; }
+    ul.tree { list-style: none; margin-left: 1em; }
+    ul.tree li { margin: 0.2em 0; }
+    .search-result { margin-bottom: 1em; padding: 0.5em; background: #f6f8fa; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>便利ツール集</h1>
+  <div class="tabs">
+    <div class="tab active" data-tab="folder">フォルダー形式変換</div>
+    <div class="tab" data-tab="calc">電卓</div>
+    <div class="tab" data-tab="translate">翻訳</div>
+    <div class="tab" data-tab="search">ウェブ検索</div>
+  </div>
+  <div id="folder" class="tab-content">
+    <h2>フォルダー形式変換ツール</h2>
+    <textarea id="folder-input" rows="8" style="width:100%;" placeholder="例:\nfolder1/\n  file1.txt\n  folder2/\n    file2.txt"></textarea>
+    <br>
+    <button onclick="convertToTree()">変換</button>
+    <div id="folder-tree"></div>
+  </div>
+  <div id="calc" class="tab-content" style="display:none;">
+    <h2>電卓</h2>
+    <input id="calc-input" type="text" style="width:60%;" placeholder="式を入力 (例: 12*(2+3))">
+    <button onclick="calc()">計算</button>
+    <div id="calc-result"></div>
+  </div>
+  <div id="translate" class="tab-content" style="display:none;">
+    <h2>翻訳（英⇔日, APIレス）</h2>
+    <textarea id="trans-input" rows="3" style="width:100%;" placeholder="翻訳したい文章を入力"></textarea>
+    <br>
+    <button onclick="translateText()">翻訳</button>
+    <div id="trans-result"></div>
+  </div>
+  <div id="search" class="tab-content" style="display:none;">
+    <h2>ウェブ検索（HighlandGame版・APIなし）</h2>
+    <input id="search-input" type="text" style="width:70%;" placeholder="検索ワードを入力">
+    <button onclick="siteSearch()">検索</button>
+    <div id="search-results"></div>
+  </div>
+  <script>
+    // タブ切り替え
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.onclick = function() {
+        document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c=>c.style.display='none');
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab).style.display = '';
+      };
+    });
+
+    // 1. フォルダー形式変換
+    function convertToTree() {
+      const input = document.getElementById('folder-input').value;
+      const lines = input.replace(/\r/g, '').split('\n');
+      const root = [];
+      let stack = [{children: root, indent: -1}];
+      lines.forEach(line => {
+        if (!line.trim()) return;
+        const indent = line.match(/^\s*/)[0].length;
+        const name = line.trim();
+        while (stack.length && indent <= stack[stack.length-1].indent) stack.pop();
+        const node = { name, children: [] };
+        stack[stack.length-1].children.push(node);
+        if (name.endsWith('/')) stack.push({children: node.children, indent});
+      });
+      function render(nodes) {
+        if (!nodes.length) return '';
+        let html = '<ul class="tree">';
+        for (const n of nodes) {
+          html += `<li>${n.name.replace(/\/$/, '<b>/</b>')}${render(n.children)}</li>`;
+        }
+        html += '</ul>';
+        return html;
+      }
+      document.getElementById('folder-tree').innerHTML = render(root);
+    }
+
+    // 2. 電卓
+    function calc() {
+      const input = document.getElementById('calc-input').value;
+      let result;
+      try {
+        if (!/^[\d+\-*/().\s%]+$/.test(input)) throw '数字と演算子のみです';
+        // 安全なeval
+        result = Function('"use strict";return (' + input + ')')();
+      } catch {
+        result = '計算エラー';
+      }
+      document.getElementById('calc-result').textContent = '結果: ' + result;
+    }
+
+    // 3. 翻訳（超簡易辞書ベース）
+    const dict = {
+      'hello': 'こんにちは',
+      'world': '世界',
+      'good': '良い',
+      'bad': '悪い',
+      'game': 'ゲーム',
+      'start': '開始',
+      'end': '終了',
+      'player': 'プレイヤー',
+      'score': '得点',
+      'exit': '終了',
+      'save': '保存',
+      'load': '読み込み',
+      // 逆方向も
+      'こんにちは': 'hello',
+      '世界': 'world',
+      '良い': 'good',
+      '悪い': 'bad',
+      'ゲーム': 'game',
+      '開始': 'start',
+      '終了': 'end',
+      'プレイヤー': 'player',
+      '得点': 'score',
+      '保存': 'save',
+      '読み込み': 'load'
+    };
+    function translateText() {
+      const text = document.getElementById('trans-input').value.trim();
+      if (!text) { document.getElementById('trans-result').textContent=''; return;}
+      // 英→日 or 日→英 単語単位
+      let result = text.split(/\b/).map(tok => dict[tok] || tok).join('');
+      document.getElementById('trans-result').textContent = '翻訳結果: ' + result;
+    }
+
+    // 4. APIなしのウェブ検索（HighlandGame/highlandgame.github.io 風）
+    // 検索対象データ: HighlandGame/highlandgame.github.io の主要HTML, JSの一部をサンプルとして埋め込む
+    const siteData = [
+      {
+        title: "index.html",
+        text: `
+<!DOCTYPE html>
+<html>
+<head><title>Highland Game</title></head>
+<body>
+  <h1>Welcome to Highland Game!</h1>
+  <script src="main.js"></script>
+</body>
+</html>
+        `
+      },
+      {
+        title: "main.js",
+        text: `
+const game = {
+  score: 0,
+  start() {
+    this.score = 0;
+    alert('ゲーム開始!');
+  },
+  end() {
+    alert('ゲーム終了! 得点: ' + this.score);
+  }
+};
+document.querySelector('#startBtn').onclick = ()=>game.start();
+document.querySelector('#endBtn').onclick = ()=>game.end();
+        `
+      },
+      {
+        title: "about.html",
+        text: `
+<h2>ゲーム概要</h2>
+<p>このゲームはスコットランドの高地文化をテーマにしたシンプルなWebゲームです。</p>
+        `
+      }
+    ];
+    function siteSearch() {
+      const q = document.getElementById('search-input').value.trim();
+      const results = [];
+      if (!q) { document.getElementById('search-results').innerHTML=''; return;}
+      for (const file of siteData) {
+        const idx = file.text.indexOf(q);
+        if (idx !== -1) {
+          // 100字前後の前後文脈も表示
+          const context = file.text.substring(Math.max(0, idx-50), Math.min(file.text.length, idx+q.length+50));
+          results.push({title: file.title, context});
+        }
+      }
+      if (results.length === 0) {
+        document.getElementById('search-results').innerHTML = '見つかりませんでした';
+      } else {
+        document.getElementById('search-results').innerHTML =
+          results.map(r=>
+            `<div class="search-result"><b>${r.title}</b><br><code style="white-space:pre-wrap;">...${r.context}...</code></div>`
+          ).join('');
+      }
+    }
+  </script>
+</body>
+</html>
