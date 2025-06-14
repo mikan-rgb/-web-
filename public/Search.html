@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Webアプリ・サイト・ゲーム検索</title>
+  <style>
+    body { font-family: sans-serif; background: #f8f8ff; margin: 2em; }
+    input[type="text"] { width: 300px; font-size: 1.2em; }
+    .result { margin: 1em 0; }
+    .item { margin: 0.3em 0; }
+    .item a { color: #0066cc; text-decoration: none; }
+    .item a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <h1>Webアプリ・サイト・ゲーム検索</h1>
+  <input type="text" id="searchInput" placeholder="例: 音楽, AI, シューティング" autofocus>
+  <div class="result" id="result"></div>
+  <script>
+    // 検索対象データ（例として有名サービス/ゲーム/サイトを列挙）
+    const sites = [
+      { name: "Rammerhead Browser", desc: "Web上で動く匿名ブラウザ", url: "https://rammerhead.org/" },
+      { name: "Agar.io", desc: "大人気ブラウザマルチプレイゲーム", url: "https://agar.io/" },
+      { name: "Pixiv", desc: "イラスト・漫画の投稿サイト", url: "https://www.pixiv.net/" },
+      { name: "Soundation", desc: "ブラウザで音楽制作できるアプリ", url: "https://soundation.com/" },
+      { name: "ChatGPT", desc: "OpenAIのAIチャットボット", url: "https://chat.openai.com/" },
+      { name: "Scratch", desc: "子供向けプログラミング学習サイト", url: "https://scratch.mit.edu/" },
+      { name: "Skribbl.io", desc: "お絵かき推理ブラウザゲーム", url: "https://skribbl.io/" },
+      { name: "Geoguessr", desc: "Googleマップを使った地理クイズゲーム", url: "https://www.geoguessr.com/" },
+      { name: "Chess.com", desc: "オンラインチェス対戦サイト", url: "https://www.chess.com/" },
+      { name: "Tetris Online", desc: "ブラウザでできるテトリス", url: "https://tetris.com/play-tetris" }
+    ];
+
+    const input = document.getElementById('searchInput');
+    const result = document.getElementById('result');
+
+    input.addEventListener('input', () => {
+      const q = input.value.trim().toLowerCase();
+      result.innerHTML = '';
+      if (!q) return;
+      // name, desc内にキーワードを含むものをフィルタ
+      const filtered = sites.filter(site =>
+        site.name.toLowerCase().includes(q) ||
+        site.desc.toLowerCase().includes(q)
+      );
+      if (filtered.length === 0) {
+        result.textContent = '該当するサイト・アプリ・ゲームが見つかりません。';
+        return;
+      }
+      // 結果表示
+      filtered.forEach(site => {
+        const el = document.createElement('div');
+        el.className = 'item';
+        el.innerHTML = `<a href="${site.url}" target="_blank">${site.name}</a> - ${site.desc}`;
+        result.appendChild(el);
+      });
+    });
+  </script>
+</body>
+</html>
